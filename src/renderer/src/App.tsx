@@ -1,36 +1,14 @@
-import { SerialPort } from 'serialport';
-import { useEffect, useState } from 'react';
+import { createRouter, RouterProvider } from '@tanstack/react-router';
+import { routeTree } from './routeTree.gen';
 
-const usePorts = () => {
-  const [ports, setPorts] = useState<Awaited<ReturnType<typeof SerialPort.list>>>([]);
+const router = createRouter({ routeTree });
 
-  useEffect(() => {
-    SerialPort.list().then(setPorts);
-  }, []);
-
-  return ports;
-};
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}
 
 export const App = () => {
-  const ports = usePorts();
-
-  return (
-    <div className="grid place-items-center min-h-screen">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold">Select Board Port</h1>
-        <div className="flex gap-2">
-          <select name="" id="" className="border border-gray-300 rounded p-1">
-            {ports.map((port) => (
-              <option key={port.path} value={port.path}>
-                {port.path}
-              </option>
-            ))}
-          </select>
-          <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-            Connect
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+  return <RouterProvider router={router} />;
 };
