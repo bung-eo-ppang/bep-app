@@ -1,25 +1,26 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
-import { SerialPort } from 'serialport'
-import { useEffect, useState } from 'react'
+import { SerialPort } from 'serialport';
+import { useEffect, useState } from 'react';
 
 const usePorts = () => {
-  const [ports, setPorts] = useState<
-    Awaited<ReturnType<typeof SerialPort.list>>
-  >([])
+  const [ports, setPorts] = useState<Awaited<ReturnType<typeof SerialPort.list>>>([]);
 
   useEffect(() => {
-    SerialPort.list().then(setPorts)
-  }, [])
+    SerialPort.list().then(setPorts);
+  }, []);
 
-  return ports
-}
+  return ports;
+};
 
 const SelectorPage = () => {
-  const ports = usePorts()
+  const ports = usePorts();
+  const navigate = Route.useNavigate();
+
   const handleSelect = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-  }
+    e.preventDefault();
+    navigate({ to: '/screen' });
+  };
 
   return (
     <div className="grid place-items-center min-h-screen">
@@ -39,9 +40,9 @@ const SelectorPage = () => {
         </form>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export const Route = createFileRoute('/')({
   component: SelectorPage,
-})
+});
