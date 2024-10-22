@@ -1,12 +1,26 @@
-import Versions from './components/Versions'
-import electronLogo from './assets/electron.svg'
+import Versions from './components/Versions';
+import electronLogo from './assets/electron.svg';
+import { SerialPort } from 'serialport';
+import { useEffect, useState } from 'react';
+
+const usePorts = () => {
+  const [ports, setPorts] = useState<Awaited<ReturnType<typeof SerialPort.list>>>([]);
+
+  useEffect(() => {
+    SerialPort.list().then(setPorts);
+  }, []);
+
+  return ports;
+};
 
 function App(): JSX.Element {
-  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping')
+  const ipcHandle = (): void => window.electron.ipcRenderer.send('ping');
+  const ports = usePorts();
 
   return (
     <>
       <img alt="logo" className="logo" src={electronLogo} />
+      {JSON.stringify(ports)}
       <div className="creator">Powered by electron-vite</div>
       <div className="text">
         Build an Electron app with <span className="react">React</span>
@@ -29,7 +43,7 @@ function App(): JSX.Element {
       </div>
       <Versions></Versions>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
