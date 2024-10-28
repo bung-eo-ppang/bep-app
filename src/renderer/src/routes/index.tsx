@@ -1,10 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { SerialPort } from 'serialport';
-import z from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { SerialPort } from 'serialport';
+import z from 'zod';
 
 const rates = [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000];
 
@@ -23,41 +23,72 @@ const schema = z.object({
   baudRate: z.coerce.number(),
 });
 
+const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) => {
+  const [port, setPort] = useState<SerialPort>();
+  const [isOpened, setIsOpened] = useState(false);
+
+  useEffect(() => {
+    if (!option) {
+      setPort(undefined);
+      return;
+    }
+    const port = new SerialPort(option);
+    setPort(port);
+
+    return () => {
+      port.close();
+    };
+  }, [option]);
+
+  useEffect(() => {
+    if (!port) return;
+    const handler = (data: Uint8Array) => {
+      console.log(new TextDecoder().decode(data));
+    };
+    port.on('data', handler);
+    return () => {
+      port.off('data', handler);
+    };
+  }, [port]);
+
+  useEffect(() => {
+    if (!port) return;
+    const handler = () => setIsOpened(port.isOpen);
+    port.on('open', handler);
+    port.on('close', handler);
+    return () => {
+      port.off('open', handler);
+      port.off('close', handler);
+    };
+  }, [port]);
+
+  return port;
+};
+
 const SelectorPage = () => {
   const ports = usePorts();
   const navigate = Route.useNavigate();
   const { handleSubmit, register } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   });
-  const [port, setPort] = useState<SerialPort>();
+  const [portData, setPortData] = useState<z.infer<typeof schema>>();
+  const port = usePort(portData);
 
   const handleSelect = (data: z.infer<typeof schema>) => {
-    setPort(new SerialPort(data));
+    setPortData(data);
   };
 
   useEffect(() => {
-    if (!port) return;
-
-    const errorHandler = (error: any) => console.error(error);
-    port.on('error', errorHandler);
-    return () => {
-      port.off('error', errorHandler);
+    const handler = (e: BeforeUnloadEvent) => {
+      if (!!port?.isOpen) {
+        e.preventDefault();
+      }
     };
-  }, [port]);
-
-  useEffect(() => {
-    if (!port) return;
-    if (!port.isOpen) return;
-    console.log('Port is open');
-    const handler = (chunk: any) => console.log(chunk);
-
-    port.on('data', handler);
-
+    window.addEventListener('beforeunload', handler);
     return () => {
-      port.off('data', handler);
-      port.close();
+      window.removeEventListener('beforeunload', handler);
     };
-  }, [port]);
+  }, []);
 
   return (
     <div className="grid place-items-center min-h-screen">
@@ -91,7 +122,7 @@ const SelectorPage = () => {
           ))}
         </select>
         <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-          Connect
+          {port?.isOpen ? 'Disconnect' : 'Connect'}
         </button>
       </form>
     </div>
