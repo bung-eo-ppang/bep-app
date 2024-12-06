@@ -16,6 +16,28 @@ const pad = [
 
 const rates = [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000];
 
+const signature = new Uint8Array([
+  0x94,
+  'B'.charCodeAt(0),
+  'E'.charCodeAt(0),
+  'P'.charCodeAt(0),
+  0x0d,
+  0x0a,
+  0x1a,
+  0x0a,
+]);
+const version = new Uint8Array([0x00, 0x00]);
+const endSignature = new Uint8Array([
+  0x95,
+  'B'.charCodeAt(0),
+  'E'.charCodeAt(0),
+  'P'.charCodeAt(0),
+  0x0d,
+  0x0a,
+  0x1a,
+  0x0a,
+]);
+
 const usePorts = () => {
   const [ports, setPorts] = useState<Awaited<ReturnType<typeof SerialPort.list>>>([]);
 
@@ -35,7 +57,16 @@ const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) => {
   const [port, setPort] = useState<SerialPort>();
   const [isOpened, setIsOpened] = useState(false);
   const [subject] = useState(new Subject<Uint8Array>());
-  const [data, setData] = useState<string>();
+  const [data, setData] = useState<{
+    number: number;
+    version: number;
+    time: number;
+    yaw: number;
+    pitch: number;
+    roll: number;
+    joyX: number;
+    joyY: number;
+  }>();
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => {
@@ -87,11 +118,32 @@ const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) => {
         mergeAll(),
         mergeMap((next) => {
           buffer = new Uint8Array([...buffer, next]);
-          if (next === '\n'.charCodeAt(0)) {
-            const result = new TextDecoder().decode(buffer);
+
+          if (buffer.length < signature.length) {
+            return EMPTY;
+          }
+
+          if (
+            buffer
+              .slice(buffer.length - endSignature.length, buffer.length)
+              .every((v, i) => v === endSignature[i])
+          ) {
+            const packet = buffer.slice(buffer.length - 64 + signature.length * 2, buffer.length);
+            const angles = new Float32Array(packet.slice(8, 28).buffer);
+            const result = {
+              number: (packet[0] << 8) | packet[1],
+              version: (packet[2] << 8) | packet[3],
+              time: new Uint32Array(packet.slice(4, 8).buffer)[0],
+              yaw: angles[0],
+              pitch: angles[1],
+              roll: angles[2],
+              joyX: angles[3],
+              joyY: angles[4],
+            };
             buffer = new Uint8Array();
             return of(result);
           }
+
           return EMPTY;
         }),
       )
@@ -114,6 +166,10 @@ const SelectorPage = () => {
   const { data, connecting, isOpened } = usePort(portData);
 
   const handleSelect = (data: z.infer<typeof schema>) => {
+    if (isOpened) {
+      setPortData(undefined);
+      return;
+    }
     setPortData(data);
   };
 
@@ -174,7 +230,7 @@ const SelectorPage = () => {
                   <button
                     key={key}
                     className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                    style={{ backgroundColor: data?.includes(key) ? 'red' : 'blue' }}
+                    // style={{ backgroundColor: data?.includes(key) ? 'red' : 'blue' }}
                   >
                     {key}
                   </button>
