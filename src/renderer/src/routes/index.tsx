@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
@@ -222,6 +222,12 @@ const SelectorPage = () => {
         >
           {isOpened ? 'Disconnect' : 'Connect'}
         </button>
+        <Link
+          to="/pingpong"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        >
+          Ping Pong
+        </Link>
         {isOpened && (
           <div className="flex flex-col gap-2 items-center">
             {pad.map((row, i) => (

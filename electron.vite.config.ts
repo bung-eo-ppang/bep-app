@@ -12,6 +12,7 @@ export default defineConfig({
     plugins: [externalizeDepsPlugin()],
   },
   renderer: {
+    assetsInclude: ['**/*.glb'],
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer/src'),
