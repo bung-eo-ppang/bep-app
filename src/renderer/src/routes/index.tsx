@@ -1,18 +1,10 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Navigate } from '@tanstack/react-router';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { usePort } from '@renderer/hooks/usePort';
+import { usePorts } from '@renderer/hooks/usePorts';
 import { useForm } from 'react-hook-form';
 import z from 'zod';
-import { usePorts } from '@renderer/hooks/usePorts';
-import { usePort } from '@renderer/hooks/usePort';
-
-const pad = [
-  ['1', '2', '3', 'A'],
-  ['4', '5', '6', 'B'],
-  ['7', '8', '9', 'C'],
-  ['*', 'O', '#', 'D'],
-];
 
 const rates = [300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 74880, 115200, 230400, 250000];
 
@@ -23,19 +15,17 @@ const schema = z.object({
 
 const SelectorPage = () => {
   const ports = usePorts();
-  const navigate = Route.useNavigate();
   const { handleSubmit, register } = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
   });
-  const [portData, setPortData] = useState<z.infer<typeof schema>>();
-  const { data, connecting, isOpened } = usePort(portData);
+  const { connecting, isOpened, connect, disconnect } = usePort();
 
   const handleSelect = (data: z.infer<typeof schema>) => {
     if (isOpened) {
-      setPortData(undefined);
+      disconnect();
       return;
     }
-    setPortData(data);
+    connect(data);
   };
 
   return (
@@ -75,29 +65,7 @@ const SelectorPage = () => {
         >
           {isOpened ? 'Disconnect' : 'Connect'}
         </button>
-        <Link
-          to="/pingpong"
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Ping Pong
-        </Link>
-        {isOpened && (
-          <div className="flex flex-col gap-2 items-center">
-            {pad.map((row, i) => (
-              <div key={i} className="flex gap-2">
-                {row.map((key) => (
-                  <button
-                    key={key}
-                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                    // style={{ backgroundColor: data?.includes(key) ? 'red' : 'blue' }}
-                  >
-                    {key}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
+        {isOpened && <Navigate to="/menu" />}
       </form>
     </div>
   );
