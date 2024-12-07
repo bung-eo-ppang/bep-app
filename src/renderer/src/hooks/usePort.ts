@@ -83,6 +83,18 @@ export const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) =>
   }, [port]);
 
   useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (isOpened) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => {
+      window.removeEventListener('beforeunload', handler);
+    };
+  }, []);
+
+  useEffect(() => {
     let buffer = new Uint8Array();
     const subscriber = subject
       .pipe(

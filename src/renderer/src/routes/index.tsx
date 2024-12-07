@@ -38,18 +38,6 @@ const SelectorPage = () => {
     setPortData(data);
   };
 
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (isOpened) {
-        e.preventDefault();
-      }
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => {
-      window.removeEventListener('beforeunload', handler);
-    };
-  }, []);
-
   return (
     <div className="grid place-items-center min-h-screen">
       <form className="flex gap-2 flex-col" onSubmit={handleSubmit(handleSelect)}>
