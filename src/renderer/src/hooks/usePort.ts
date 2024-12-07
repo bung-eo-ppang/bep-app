@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { EMPTY, mergeAll, mergeMap, of, Subject } from 'rxjs';
 import { SerialPort } from 'serialport';
+
+type PortData = ConstructorParameters<typeof SerialPort>[0];
 
 const signature = new Uint8Array([
   0x94,
@@ -12,7 +14,6 @@ const signature = new Uint8Array([
   0x1a,
   0x0a,
 ]);
-const version = new Uint8Array([0x00, 0x00]);
 const endSignature = new Uint8Array([
   0x95,
   'B'.charCodeAt(0),
@@ -24,7 +25,7 @@ const endSignature = new Uint8Array([
   0x0a,
 ]);
 
-export const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) => {
+export const usePortProvider = () => {
   const [port, setPort] = useState<SerialPort>();
   const [isOpened, setIsOpened] = useState(false);
   const [subject] = useState(new Subject<Uint8Array>());
@@ -40,19 +41,22 @@ export const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) =>
   }>();
   const [connecting, setConnecting] = useState(false);
 
-  useEffect(() => {
-    if (!option) {
-      setPort(undefined);
-      return;
-    }
-    const port = new SerialPort(option);
-    setPort(port);
+  const connect = useCallback(async (option: PortData) => {
+    setPort(new SerialPort(option));
     setConnecting(true);
+  }, []);
 
-    return () => {
+  const disconnect = useCallback(() => {
+    if (port) {
       port.close();
+    }
+  }, [port]);
+
+  useEffect(() => {
+    return () => {
+      port?.close();
     };
-  }, [option]);
+  }, [port]);
 
   useEffect(() => {
     if (!port) return;
@@ -112,6 +116,11 @@ export const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) =>
               .every((v, i) => v === endSignature[i])
           ) {
             const packet = buffer.slice(buffer.length - 64 + signature.length * 2, buffer.length);
+            if (!packet.slice(0, signature.length).every((v, i) => v === signature[i])) {
+              buffer = new Uint8Array();
+              return EMPTY;
+            }
+
             const angles = new Float32Array(packet.slice(8, 28).buffer);
             const result = {
               number: (packet[0] << 8) | packet[1],
@@ -136,5 +145,15 @@ export const usePort = (option?: ConstructorParameters<typeof SerialPort>[0]) =>
     };
   }, []);
 
-  return { port, data, isOpened, connecting };
+  return { port, data, isOpened, connecting, connect, disconnect };
+};
+
+export const portContext = createContext<ReturnType<typeof usePortProvider> | null>(null);
+
+export const usePort = () => {
+  const data = useContext(portContext);
+  if (!data) {
+    throw new Error('PortProvider is not found');
+  }
+  return data;
 };
