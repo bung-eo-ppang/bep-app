@@ -33,14 +33,22 @@ type State = {
   welcome: boolean;
 };
 
-const ping = new Audio(pingSound);
+const audioContext = new AudioContext();
+const pingBuffer = await fetch(pingSound)
+  .then((res) => res.arrayBuffer())
+  .then((buffer) => audioContext.decodeAudioData(buffer));
+
 const useStore = create<State>((set) => ({
   api: {
     pong(velocity) {
-      console.log(velocity);
-      ping.currentTime = 0;
-      ping.volume = clamp(velocity / 20, 0, 1);
-      ping.play();
+      const source = audioContext.createBufferSource();
+      source.buffer = pingBuffer;
+      const gainNode = audioContext.createGain();
+      gainNode.gain.value = clamp(velocity / 1000, 0, 1);
+      source.connect(gainNode);
+
+      gainNode.connect(audioContext.destination);
+      source.start(0);
       if (velocity > 500) set((state) => ({ count: state.count + 1 }));
     },
     reset: (welcome) => set((state) => ({ count: welcome ? state.count : 0, welcome })),
