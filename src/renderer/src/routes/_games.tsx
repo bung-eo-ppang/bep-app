@@ -1,6 +1,9 @@
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router';
+import { usePort } from '@renderer/hooks/usePort';
+import { createFileRoute, Link, Navigate, Outlet } from '@tanstack/react-router';
 
 const Layout = () => {
+  const { isOpened } = usePort();
+  if (!isOpened) return <Navigate to="/" />;
   return (
     <div>
       <Outlet />
