@@ -37,6 +37,7 @@ const ping = new Audio(pingSound);
 const useStore = create<State>((set) => ({
   api: {
     pong(velocity) {
+      console.log(velocity);
       ping.currentTime = 0;
       ping.volume = clamp(velocity / 20, 0, 1);
       ping.play();
@@ -67,13 +68,11 @@ function Paddle() {
   useFrame((state) => {
     values.current[0] = lerp(values.current[0], (state.pointer.x * Math.PI) / 5, 0.2);
     values.current[1] = lerp(values.current[1], (state.pointer.x * Math.PI) / 5, 0.2);
-    rigidBody.current?.setTranslation(
+    rigidBody.current?.setNextKinematicTranslation(
       vec3({ x: state.pointer.x * 10, y: state.pointer.y * 5, z: 0 }),
-      true,
     );
-    rigidBody.current?.setRotation(
+    rigidBody.current?.setNextKinematicRotation(
       quat().setFromEuler(euler({ x: 0, y: 0, z: values.current[1] })),
-      true,
     );
     if (!model.current) return;
     model.current.rotation.x = lerp(model.current.rotation.x, welcome ? Math.PI / 2 : 0, 0.2);
@@ -82,31 +81,32 @@ function Paddle() {
 
   return (
     <RigidBody
-      type="fixed"
+      type="kinematicPosition"
       ref={rigidBody}
       onContactForce={(e) => pong(e.totalForceMagnitude)}
       restitution={0.9}
       friction={0.9}
+      mass={10000}
+      colliders={false}
     >
+      <CuboidCollider args={[1.6, 0.15, 1.8]} position={[0, 0.35, 0]} />
       <mesh dispose={null}>
         <group ref={model} position={[-0.05, 0.37, 0.3]} scale={[0.15, 0.15, 0.15]}>
-          <RigidBody colliders={false}>
-            <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 1, 2]} count={count.toString()} />
-            <group rotation={[1.88, -0.35, 2.32]} scale={[2.97, 2.97, 2.97]}>
-              <primitive object={nodes.Bone} />
-              <primitive object={nodes.Bone003} />
-              <primitive object={nodes.Bone006} />
-              <primitive object={nodes.Bone010} />
-              <skinnedMesh
-                castShadow
-                receiveShadow
-                material={materials.glove}
-                material-roughness={1}
-                geometry={nodes.arm.geometry}
-                skeleton={nodes.arm.skeleton}
-              />
-            </group>
-          </RigidBody>
+          <Text rotation={[-Math.PI / 2, 0, 0]} position={[0, 1, 2]} count={count.toString()} />
+          <group rotation={[1.88, -0.35, 2.32]} scale={[2.97, 2.97, 2.97]}>
+            <primitive object={nodes.Bone} />
+            <primitive object={nodes.Bone003} />
+            <primitive object={nodes.Bone006} />
+            <primitive object={nodes.Bone010} />
+            <skinnedMesh
+              castShadow
+              receiveShadow
+              material={materials.glove}
+              material-roughness={1}
+              geometry={nodes.arm.geometry}
+              skeleton={nodes.arm.skeleton}
+            />
+          </group>
           <group rotation={[0, -0.04, 0]} scale={[141.94, 141.94, 141.94]}>
             <mesh
               castShadow
@@ -147,9 +147,16 @@ function Paddle() {
 
 function Ball() {
   const map = useLoader(TextureLoader, earthImg);
+  const ref = useRef<RapierRigidBody>(null);
+  useFrame(() => {
+    if (!ref.current) return;
+    const vec = ref.current.translation();
+    vec.z = 0;
+    ref.current?.setNextKinematicTranslation(vec);
+  });
 
   return (
-    <RigidBody colliders="ball" position={[0, 5, 0]} mass={1} restitution={0.9}>
+    <RigidBody colliders="ball" position={[0, 5, 0]} mass={1} restitution={0.9} ref={ref}>
       <mesh castShadow>
         <sphereGeometry args={[0.5, 64, 64]} />
         <meshStandardMaterial map={map} />
@@ -208,7 +215,7 @@ const Page = () => {
           shadow-mapSize-height={2048}
           shadow-bias={-0.0001}
         />
-        <Physics gravity={[0, -40, 0]}>
+        <Physics gravity={[0, -40, 0]} numSolverIterations={30} debug>
           <mesh position={[0, 0, -10]} receiveShadow>
             <planeGeometry args={[1000, 1000]} />
             <meshPhongMaterial color="#172017" />
