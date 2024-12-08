@@ -10,7 +10,7 @@ import {
   vec3,
 } from '@react-three/rapier';
 import { useGLTF } from '@react-three/drei';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { Canvas, Object3DProps, useFrame, useLoader } from '@react-three/fiber';
 import lerp from 'lerp';
 import clamp from 'lodash-es/clamp';
 import { Suspense, useRef } from 'react';
@@ -166,14 +166,14 @@ function Ball() {
   );
 }
 
-function ContactGround() {
+function ContactGround({ position = [0, -10, 0] }: { position?: Object3DProps['position'] }) {
   const { reset } = useStore((state) => state.api);
   return (
     <RigidBody
       type="fixed"
       colliders="cuboid"
       onCollisionEnter={() => reset(true)}
-      position={[0, -10, 0]}
+      position={position}
       rotation={[-Math.PI / 2, 0, 0]}
     >
       <CuboidCollider args={[1000, 1000, 1]} />
@@ -222,6 +222,7 @@ const Page = () => {
             <meshPhongMaterial color="#172017" />
           </mesh>
           <ContactGround />
+          <ContactGround position={[0, 10, 0]} />
           {!welcome && <Ball />}
           <Suspense fallback={null}>
             <Paddle />
