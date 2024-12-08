@@ -53,12 +53,6 @@ export const usePortProvider = () => {
   }, [port]);
 
   useEffect(() => {
-    return () => {
-      port?.close();
-    };
-  }, [port]);
-
-  useEffect(() => {
     if (!port) return;
     const handler = (data: Uint8Array) => {
       subject.next(data);
@@ -89,6 +83,7 @@ export const usePortProvider = () => {
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       if (isOpened) {
+        disconnect();
         e.preventDefault();
       }
     };
@@ -96,7 +91,7 @@ export const usePortProvider = () => {
     return () => {
       window.removeEventListener('beforeunload', handler);
     };
-  }, []);
+  }, [isOpened, disconnect]);
 
   useEffect(() => {
     let buffer = new Uint8Array();
