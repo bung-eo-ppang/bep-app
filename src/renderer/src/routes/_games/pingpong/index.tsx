@@ -155,16 +155,9 @@ function Paddle() {
 
 function Ball() {
   const map = useLoader(TextureLoader, earthImg);
-  const ref = useRef<RapierRigidBody>(null);
-  useFrame(() => {
-    if (!ref.current) return;
-    const vec = ref.current.translation();
-    vec.z = 0;
-    ref.current?.setNextKinematicTranslation(vec);
-  });
 
   return (
-    <RigidBody colliders="ball" position={[0, 5, 0]} mass={1} restitution={0.9} ref={ref}>
+    <RigidBody colliders="ball" position={[0, 5, 0]} mass={1} restitution={0.9}>
       <mesh castShadow>
         <sphereGeometry args={[0.5, 64, 64]} />
         <meshStandardMaterial map={map} />
