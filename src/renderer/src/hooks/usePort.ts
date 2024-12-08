@@ -30,16 +30,25 @@ export const usePortProvider = () => {
   const [isOpened, setIsOpened] = useState(false);
   const [subject] = useState(new Subject<Uint8Array>());
   const [data, setData] = useState<{
+    globalTime: number;
+    globalVersion: number;
     number: number;
     version: number;
     time: number;
     yaw: number;
     pitch: number;
     roll: number;
+    xAccel: number;
+    yAccel: number;
+    zAccel: number;
     joyX: number;
     joyY: number;
+    upButton: boolean;
+    downButton: boolean;
   }>();
   const [connecting, setConnecting] = useState(false);
+
+  console.log(JSON.stringify(data));
 
   const connect = useCallback(async (option: PortData) => {
     setPort(new SerialPort(option));
@@ -110,22 +119,30 @@ export const usePortProvider = () => {
               .slice(buffer.length - endSignature.length, buffer.length)
               .every((v, i) => v === endSignature[i])
           ) {
-            const packet = buffer.slice(buffer.length - 64 + signature.length * 2, buffer.length);
+            const packet = buffer.slice(buffer.length - 80, buffer.length);
             if (!packet.slice(0, signature.length).every((v, i) => v === signature[i])) {
               buffer = new Uint8Array();
               return EMPTY;
             }
 
-            const angles = new Float32Array(packet.slice(8, 28).buffer);
+            const buttonMap = packet.slice(56, 60);
             const result = {
-              number: (packet[0] << 8) | packet[1],
-              version: (packet[2] << 8) | packet[3],
-              time: new Uint32Array(packet.slice(4, 8).buffer)[0],
-              yaw: angles[0],
-              pitch: angles[1],
-              roll: angles[2],
-              joyX: angles[3],
-              joyY: angles[4],
+              globalTime: new Uint32Array(packet.slice(8, 12).buffer)[0],
+              count: new Uint16Array(packet.slice(12, 14).buffer)[0],
+              globalVersion: new Uint16Array(packet.slice(14, 16).buffer)[0],
+              number: new Uint16Array(packet.slice(16, 18).buffer)[0],
+              version: new Uint16Array(packet.slice(18, 20).buffer)[0],
+              time: new Uint32Array(packet.slice(20, 24).buffer)[0],
+              yaw: new Float32Array(packet.slice(24, 28).buffer)[0],
+              pitch: new Float32Array(packet.slice(28, 32).buffer)[0],
+              roll: new Float32Array(packet.slice(32, 36).buffer)[0],
+              xAccel: new Int16Array(packet.slice(36, 38).buffer)[0],
+              yAccel: new Int16Array(packet.slice(38, 40).buffer)[0],
+              zAccel: new Int16Array(packet.slice(40, 42).buffer)[0],
+              joyX: new Float32Array(packet.slice(48, 52).buffer)[0],
+              joyY: new Float32Array(packet.slice(52, 56).buffer)[0],
+              upButton: !!(buttonMap[0] & 0b00000001),
+              downButton: !!(buttonMap[0] & 0b00000010),
             };
             buffer = new Uint8Array();
             return of(result);
