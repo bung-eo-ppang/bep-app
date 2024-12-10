@@ -206,6 +206,11 @@ const Page = () => {
   const { data } = usePort();
   const welcome = useStore((state) => state.welcome);
   const { reset } = useStore((state) => state.api);
+  const navigate = Route.useNavigate();
+
+  useEffect(() => {
+    if (data?.buttons[0]) navigate({ to: '/menu' });
+  }, [data?.buttons[0]]);
 
   useEffect(() => {
     if (welcome && data?.buttons[3]) reset(false);
