@@ -236,7 +236,7 @@ const Page = () => {
           shadow-mapSize-height={2048}
           shadow-bias={-0.0001}
         />
-        <Physics gravity={[0, -40, 0]} numSolverIterations={30} debug>
+        <Physics gravity={[0, -40, 0]} numSolverIterations={30}>
           <mesh position={[0, 0, -10]} receiveShadow>
             <planeGeometry args={[1000, 1000]} />
             <meshPhongMaterial color="#172017" />
