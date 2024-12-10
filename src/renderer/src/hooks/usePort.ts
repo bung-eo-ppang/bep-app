@@ -109,6 +109,7 @@ export const usePortProvider = () => {
         mergeAll(),
         mergeMap((next) => {
           buffer = new Uint8Array([...buffer, next]);
+          buffer = buffer.slice(Math.max(0, buffer.length - 160), buffer.length);
 
           if (buffer.length < signature.length) {
             return EMPTY;
