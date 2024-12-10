@@ -4,6 +4,7 @@ import { createFileRoute, Link, Navigate } from '@tanstack/react-router';
 import { useEffect, useState } from 'react';
 
 const links = [
+  { to: '/reactionSpeed', label: 'Reaction Speed' },
   { to: '/pingpong', label: 'Ping Pong' },
   { to: '/', label: 'Main' },
 ] as const;
