@@ -29,26 +29,25 @@ export const usePortProvider = () => {
   const [port, setPort] = useState<SerialPort>();
   const [isOpened, setIsOpened] = useState(false);
   const [subject] = useState(new Subject<Uint8Array>());
-  const [data, setData] = useState<{
-    globalTime: number;
-    globalVersion: number;
-    number: number;
-    version: number;
-    time: number;
-    yaw: number;
-    pitch: number;
-    roll: number;
-    xAccel: number;
-    yAccel: number;
-    zAccel: number;
-    joyX: number;
-    joyY: number;
-    upButton: boolean;
-    downButton: boolean;
-  }>();
+  const [data, setData] = useState<
+    Readonly<{
+      globalTime: number;
+      globalVersion: number;
+      number: number;
+      version: number;
+      time: number;
+      yaw: number;
+      pitch: number;
+      roll: number;
+      xAccel: number;
+      yAccel: number;
+      zAccel: number;
+      joyX: number;
+      joyY: number;
+      buttons: Readonly<[boolean, boolean, boolean, boolean]>;
+    }>
+  >();
   const [connecting, setConnecting] = useState(false);
-
-  console.log(JSON.stringify(data));
 
   const connect = useCallback(async (option: PortData) => {
     setPort(new SerialPort(option));
@@ -142,9 +141,13 @@ export const usePortProvider = () => {
               zAccel: new Int16Array(packet.slice(40, 42).buffer)[0],
               joyX: new Float32Array(packet.slice(48, 52).buffer)[0],
               joyY: new Float32Array(packet.slice(52, 56).buffer)[0],
-              upButton: !!(buttonMap[0] & 0b00000001),
-              downButton: !!(buttonMap[0] & 0b00000010),
-            };
+              buttons: [
+                !!(buttonMap[0] & 0b00000001),
+                !!(buttonMap[0] & 0b00000010),
+                !!(buttonMap[0] & 0b00000100),
+                !!(buttonMap[0] & 0b00001000),
+              ] as const,
+            } as const;
             buffer = new Uint8Array();
             return of(result);
           }
