@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { EMPTY, mergeAll, mergeMap, of, Subject } from 'rxjs';
 import { SerialPort } from 'serialport';
 
@@ -14,6 +14,7 @@ const signature = new Uint8Array([
   0x1a,
   0x0a,
 ]);
+const version = 2;
 const endSignature = new Uint8Array([
   0x95,
   'B'.charCodeAt(0),
@@ -48,10 +49,14 @@ export const usePortProvider = () => {
     }>
   >();
   const [connecting, setConnecting] = useState(false);
+  const versionWarned = useRef(false);
+  const globalVersionWarned = useRef(false);
 
   const connect = useCallback(async (option: PortData) => {
     setPort(new SerialPort(option));
     setConnecting(true);
+    versionWarned.current = true;
+    globalVersionWarned.current = true;
   }, []);
 
   const disconnect = useCallback(() => {
@@ -100,6 +105,18 @@ export const usePortProvider = () => {
       window.removeEventListener('beforeunload', handler);
     };
   }, [isOpened, disconnect]);
+
+  useEffect(() => {
+    if (!data) return;
+    if (data?.version !== version && !versionWarned.current) {
+      console.warn('Version mismatch');
+      versionWarned.current = true;
+    }
+    if (data?.globalVersion !== version && !globalVersionWarned.current) {
+      console.warn('Global version mismatch');
+      globalVersionWarned.current = true;
+    }
+  }, [data?.version, data?.globalVersion]);
 
   useEffect(() => {
     let buffer = new Uint8Array();
