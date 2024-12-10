@@ -20,8 +20,7 @@ const Menu = () => {
     if (data?.buttons[1]) {
       setFocusIndex((prev) => (prev - 1 + links.length) % links.length);
     }
-    if (data?.buttons[2]) {
-      console.log();
+    if (data?.buttons[2] && links[focusIndex]) {
       navigate({ to: links[focusIndex].to });
     }
   }, [data?.buttons[0], data?.buttons[1], data?.buttons[2]]);
