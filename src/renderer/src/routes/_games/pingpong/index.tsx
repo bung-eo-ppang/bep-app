@@ -13,7 +13,7 @@ import { useGLTF } from '@react-three/drei';
 import { Canvas, Object3DProps, useFrame, useLoader } from '@react-three/fiber';
 import lerp from 'lerp';
 import clamp from 'lodash-es/clamp';
-import { Suspense, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import type { Group, Material, Mesh, Object3D, Skeleton } from 'three';
 import { TextureLoader } from 'three';
 import type { GLTF } from 'three-stdlib/loaders/GLTFLoader';
@@ -23,6 +23,7 @@ import earthImg from './-components/resources/cross.jpg';
 import pingSound from './-components/resources/ping.mp3';
 import Text from './-components/Text';
 import pingpongGlb from './-components/resources/pingpong.glb';
+import { usePort } from '@renderer/hooks/usePort';
 
 type State = {
   api: {
@@ -73,11 +74,21 @@ function Paddle() {
   const model = useRef<Group>(null);
   const rigidBody = useRef<RapierRigidBody>(null);
   const values = useRef([0, 0]);
-  useFrame((state) => {
-    values.current[0] = lerp(values.current[0], (state.pointer.x * Math.PI) / 5, 0.2);
-    values.current[1] = lerp(values.current[1], (state.pointer.x * Math.PI) / 5, 0.2);
+  const pointer = useRef({ x: 0, y: 0 });
+  const { data } = usePort();
+
+  useEffect(() => {
+    if (data?.roll && data?.pitch) {
+      pointer.current.x = clamp(data.pitch / -90, -1, 1);
+      pointer.current.y = clamp(data.roll / 90, -1, 1);
+    }
+  }, [data]);
+
+  useFrame(() => {
+    values.current[0] = lerp(values.current[0], (pointer.current.x * Math.PI) / 5, 0.2);
+    values.current[1] = lerp(values.current[1], (pointer.current.x * Math.PI) / 5, 0.2);
     rigidBody.current?.setNextKinematicTranslation(
-      vec3({ x: state.pointer.x * 10, y: state.pointer.y * 5, z: 0 }),
+      vec3({ x: pointer.current.x * 10, y: pointer.current.y * 5, z: 0 }),
     );
     rigidBody.current?.setNextKinematicRotation(
       quat().setFromEuler(euler({ x: 0, y: 0, z: values.current[1] })),
@@ -192,8 +203,17 @@ const style = (welcome: boolean) =>
   }) as const;
 
 const Page = () => {
+  const { data } = usePort();
   const welcome = useStore((state) => state.welcome);
   const { reset } = useStore((state) => state.api);
+
+  useEffect(() => {
+    if (welcome && data?.buttons[3]) reset(false);
+  }, [welcome, data?.buttons[3]]);
+
+  useEffect(() => {
+    if (!welcome && data?.buttons[2]) reset(true);
+  }, [data?.buttons[2]]);
 
   return (
     <div className="h-screen">
